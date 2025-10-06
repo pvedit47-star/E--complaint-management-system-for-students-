@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Submit Complaint</title>
+<link rel="stylesheet" href="CSS/style.css">
+</head>
+<body>
+<h2 style="text-align:center;">Submit Complaint</h2>
+<form id="complaint-form">
+  <input type="text" id="title" placeholder="Complaint Title" required>
+  <select id="category" required>
+    <option value="">Select Category</option>
+    <option value="Academic">Academic</option>
+    <option value="Facilities">Facilities</option>
+    <option value="Hostel">Hostel</option>
+    <option value="Other">Other</option>
+  </select>
+  <textarea id="description" placeholder="Describe your complaint" rows="5" required></textarea>
+  <button type="submit">Submit</button>
+</form>
+
+<p style="text-align:center;"><a href="view-status.html">View Complaint Status</a></p>
+<p style="text-align:center;"><a href="#" onclick="logout()">Logout</a></p>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script>
+  const complaintForm = document.getElementById('complaint-form');
+
+  auth.onAuthStateChanged(user => {
+    if (!user) {
+      window.location = "student-login.html";
+    }
+  });
+
+  complaintForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const title = document.getElementById('title').value;
+    const category = document.getElementById('category').value;
+    const description = document.getElementById('description').value;
+    const user = auth.currentUser;
+
+    if (!user) {
+      alert("You must be logged in to submit a complaint.");
+      return;
+    }
+
+    db.collection('students').doc(user.uid).get().then(doc => {
+      if (doc.exists) {
+        const studentData = doc.data();
+        db.collection('complaints').add({
+          studentId: user.uid,
+          studentName: studentData.name,
+          studentEmail: studentData.email,
+          title: title,
+          category: category,
+          description: description,
+          status: "Pending",
+          date: new Date()
+        }).then(() => {
+          alert('Complaint submitted successfully!');
+          complaintForm.reset();
+        }).catch(err => {
+          alert(err.message);
+        });
+      } else {
+        alert('Error: Could not find your student data.');
+        auth.signOut(); // Log out if student data is missing
+        window.location = 'student-login.html';
+      }
+    });
+  });
+
+  // CORRECTED: Added script for logout functionality
+  function logout() {
+    auth.signOut().then(() => {
+      window.location.href = 'student-login.html';
+    }).catch(err => {
+      alert(err.message);
+    });
+  }
+</script>
+</body>
+</html>
